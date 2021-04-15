@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+    nginx:
+        image: raikh/rtest-frontend
+        depends_on:
+            - backend
+        ports:
+            - "80:80"
+        volumes:
+            - ./conf.d:/etc/nginx/conf.d
+            
+    backend: 
+        image: raikh/rtest-backend
+        depends_on:
+            - mysql
+            - redis
+        volumes:
+            - ./env/env.backend:/var/www/html/.env
+
+    worker: 
+        image: raikh/rtest-backend
+        depends_on:
+            - mysql
+            - redis
+        volumes:
+            - ./env/env.backend:/var/www/html/.env
+        entrypoint: [ "php", "artisan", "queue:work", "--daemon", "--tries=1", "--timeout=120", "--queue=schedule_queue" ]
+
+    mysql:
+        image: mysql:8.0
+        command: 
+            - mysqld
+            - --default-authentication-plugin=mysql_native_password
+        volumes:
+            - ./volumes/mysql:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: secret
+            MYSQL_PASSWORD: robo
+            MYSQL_DATABASE: robo
+            MYSQL_USER: robo
+
+    redis:
+        image: redis:latest
